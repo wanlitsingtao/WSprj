@@ -232,17 +232,16 @@ def render_sidebar(active_page: str = "conversion"):
                 unsafe_allow_html=True,
             )
 
+        _logged_in_name = st.session_state.get('logged_in_username', None)
+        _user_label = _logged_in_name or "游客"
         st.markdown('<div class="user-card">', unsafe_allow_html=True)
-        st.markdown("<div style='display:flex;align-items:center;gap:10px;font-size:1.02rem;font-weight:700;color:#1f2937;'><span style='display:inline-flex;width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#4f46e5,#8b5cf6);color:white;align-items:center;justify-content:center;font-size:0.9rem;'>U</span> 用户信息</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='display:flex;align-items:center;gap:10px;font-size:1.02rem;font-weight:700;color:#1f2937;'><span style='display:inline-flex;width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#4f46e5,#8b5cf6);color:white;align-items:center;justify-content:center;font-size:0.9rem;'>U</span> {_user_label}</div>", unsafe_allow_html=True)
         st.caption(f"用户ID: {app_state.get_user_id()[:12]}...")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        _logged_in_name = st.session_state.get('logged_in_username', None)
         if st.session_state.get('user_init_failed', False):
             st.error("❌ 获取用户ID失败")
             st.caption("用户服务暂时不可用，请稍后刷新页面重试")
-        elif _logged_in_name:
-            st.caption(f"👤 {_logged_in_name}")
 
         # ==================== 账号绑定 / 登录按钮 ====================
         from account_manager import create_account_manager
@@ -251,8 +250,6 @@ def render_sidebar(active_page: str = "conversion"):
         _logged_in_user = st.session_state.get('logged_in_username', None)
 
         if _logged_in_user:
-            st.markdown(f"👤 **{_logged_in_user}**")
-
             if st.session_state.get('show_unbind_confirm', False):
                 st.warning("确定要解绑账号吗？解绑后用户名和密码将被清除，恢复设备指纹身份。")
                 col_ub1, col_ub2 = st.columns(2)
