@@ -4,7 +4,7 @@
 无 Streamlit 依赖，可独立测试。
 
 职责：
-1. 提供默认规则集（re-export doc_converter.get_default_tone_rules）
+1. 提供默认规则集（用于用户初始化和恢复默认）
 2. 规则 CRUD（浏览/增/删/改）
 3. 规则校验
 4. 测试转换（用当前规则集模拟祈使语气转换）
@@ -15,7 +15,8 @@ import json
 import re
 from typing import Dict, List, Optional, Tuple
 
-from doc_converter import get_default_tone_rules, build_word_pattern
+from doc_converter import build_word_pattern
+from tone_defaults import get_default_tone_rules
 
 
 class ToneRulesManager:
