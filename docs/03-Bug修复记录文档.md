@@ -3203,6 +3203,45 @@ Web版完成一次文档转换后再次点击“开始转换”仍会执行转�
 
 - `python -m py_compile components/upload.py pages/conversion.py`
 - `python -m unittest -v test_conversion_paragraphs.py`
+
+---
+
+## 2026-09-08 Web版临时文件目录与登录面板位置优化
+
+### 问题
+
+Web版上传源文档、模板文档及部分工具生成的临时文档直接写入项目根目录，导致程序文件与运行时文件混杂。账号登录表单虽然由“账号登录”按钮打开，但渲染位置位于功能菜单之后，操作路径不直观。
+
+### 修复
+
+1. 新增统一运行时目录 `temp/`，源文档、模板文档、提示图片、样式清理文档和标题预处理文档均写入该目录。
+2. `FileManager` 默认扫描和清理 `temp/`，不再扫描项目根目录。
+3. 登录面板紧跟“账号登录”按钮渲染，移除功能菜单之后的旧渲染位置。
+
+### 验证
+
+- `python -m py_compile config.py file_manager.py pages/conversion.py components/upload.py components/config_panel.py components/style_cleanup.py components/title_preprocess.py components/sidebar.py`
+- `python -m unittest -v test_temp_storage.py`
+
+---
+
+## 2026-09-08 Web版侧边栏菜单切换刷新修复
+
+### 问题
+
+Web版使用 `st.navigation` 注册多个页面，并在侧边栏使用 `st.page_link` 切换。点击功能菜单时，Streamlit 会按多页面模式重新构建页面和侧边栏，导致侧边栏内容一起刷新，用户状态和操作上下文体验不稳定。
+
+### 修复
+
+1. 参考 `exmsys`，改为单入口 `app.py` 路由。
+2. 侧边栏功能菜单改用 `st.radio` 保存 `sidebar_active_page` 会话状态。
+3. `app.py` 根据会话状态调用对应页面渲染函数，移除 `st.navigation` 和 `st.page_link`。
+4. 保留各页面现有公共入口和业务逻辑，避免扩大改动范围。
+
+### 验证
+
+- `python -m py_compile app.py components/sidebar.py pages/conversion.py pages/toolbox.py pages/tone_config.py pages/comments.py`
+- `python -m unittest -v test_sidebar_navigation.py`
 | **时间节省** | - | 0.12秒 | - |
 | **Document加载次数** | 3次 | 1次 | **减少67%** |
 | **文件保存次数** | 3次 | 1次 | **减少67%** |

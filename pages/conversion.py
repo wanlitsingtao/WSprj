@@ -196,7 +196,7 @@ def render_conversion_page():
         count_template_styles,
         count_paragraphs,
     )
-    from config import TEMPLATE_STYLE_THRESHOLD
+    from config import TEMPLATE_STYLE_THRESHOLD, TEMP_DIR
 
     from components.sidebar import render_sidebar
     render_sidebar("conversion")
@@ -244,7 +244,7 @@ def render_conversion_page():
             from doc_converter import DocumentConverter
 
             for idx, source_file in enumerate(current_source_files, 1):
-                temp_source = f"temp_source_{user_id}_{source_file.name}"
+                temp_source = str(TEMP_DIR / f"temp_source_{user_id}_{source_file.name}")
                 with open(temp_source, 'wb') as f:
                     f.write(source_file.getbuffer())
 
@@ -350,7 +350,7 @@ def render_conversion_page():
         if 'template_styles' in st.session_state:
             app_state.delete_key('template_styles')
             logger.info("[REFRESH] 清除旧模板样式缓存，准备重新解析")
-        temp_template = f"temp_template_{user_id}.docx"
+        temp_template = str(TEMP_DIR / f"temp_template_{user_id}.docx")
         with open(temp_template, 'wb') as f:
             f.write(template_file.getbuffer())
         app_state.set_current_temp_template(temp_template)
@@ -473,7 +473,7 @@ def render_conversion_page():
             file_info = []
             total_paragraphs = 0
             for source_file in current_source_files:
-                temp_source = f"temp_source_{user_id}_{source_file.name}"
+                temp_source = str(TEMP_DIR / f"temp_source_{user_id}_{source_file.name}")
                 with open(temp_source, 'wb') as f:
                     f.write(source_file.getbuffer())
                 paragraphs = count_paragraphs(temp_source)
@@ -505,7 +505,7 @@ def render_conversion_page():
 
             source_files_info = []
             for fname, fpara in file_info:
-                temp_source = f"temp_source_{user_id}_{fname}"
+                temp_source = str(TEMP_DIR / f"temp_source_{user_id}_{fname}")
                 source_files_info.append((fname, temp_source, fpara))
 
             config = {
@@ -550,7 +550,7 @@ def render_conversion_page():
                     base_name = os.path.splitext(source_file_obj.name)[0]
                     output_filename = f"result_{base_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
                     output_file = os.path.join("conversion_results", output_filename)
-                    temp_source = f"temp_source_{user_id}_{source_file_obj.name}"
+                    temp_source = str(TEMP_DIR / f"temp_source_{user_id}_{source_file_obj.name}")
 
                     if not os.path.exists(temp_source):
                         logger.warning(f"临时文件 {temp_source} 不存在，从 UploadedFile 重新创建")

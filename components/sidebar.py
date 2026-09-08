@@ -21,8 +21,19 @@ def configure_navigation_pages(pages):
     _NAVIGATION_PAGES = pages
 
 
-def _render_feature_menu():
+def _render_feature_menu(active_page: str = "conversion"):
     """在额度信息之后渲染侧栏页面导航。"""
+    page_options = (
+        ("conversion", "📄 文档转换"),
+        ("toolbox", "🛠️ 工具箱"),
+        ("tone_config", "⚙️ 祈使语气配置"),
+        ("comments", "💬 用户评价"),
+    )
+    page_keys = [key for key, _ in page_options]
+    labels = {key: label for key, label in page_options}
+    if active_page not in page_keys:
+        active_page = page_keys[0]
+
     st.markdown(
         """
         <div class="sidebar-section-divider"></div>
@@ -33,13 +44,14 @@ def _render_feature_menu():
         """,
         unsafe_allow_html=True,
     )
-    for page_key, label in (
-        ("conversion", "文档转换"),
-        ("toolbox", "工具箱"),
-        ("tone_config", "祈使语气配置"),
-        ("comments", "用户评价"),
-    ):
-        st.page_link(_NAVIGATION_PAGES[page_key], label=label, use_container_width=True)
+    st.radio(
+        "功能菜单",
+        page_keys,
+        index=page_keys.index(active_page),
+        format_func=lambda page_key: labels[page_key],
+        key="sidebar_active_page",
+        label_visibility="collapsed",
+    )
 
 
 @st.cache_resource
@@ -67,6 +79,60 @@ def _get_ds_image_bytes():
     return None
 
 
+def _render_login_dialog(device_fingerprint):
+    """在账号登录按钮下方渲染登录面板。"""
+    if not st.session_state.get('show_login_dialog', False):
+        return
+
+    from account_manager import create_account_manager
+
+    with st.expander("🔑 账号登录", expanded=True):
+        st.markdown("使用已绑定的用户名和密码登录。")
+        with st.form("login_account_form"):
+            login_username = st.text_input(
+                "用户名",
+                placeholder="输入已绑定的用户名",
+                key="login_username_input"
+            )
+            login_password = st.text_input(
+                "密码",
+                type="password",
+                placeholder="输入登录密码",
+                key="login_password_input"
+            )
+
+            col_l1, col_l2 = st.columns(2)
+            with col_l1:
+                submitted_login = st.form_submit_button("✅ 登录", use_container_width=True)
+            with col_l2:
+                cancelled_login = st.form_submit_button("取消", use_container_width=True)
+
+        if cancelled_login:
+            st.session_state.show_login_dialog = False
+            for key in ('login_username_input', 'login_password_input'):
+                st.session_state.pop(key, None)
+            st.rerun()
+
+        if submitted_login:
+            if not login_username or not login_password:
+                st.error("用户名和密码不能为空")
+            else:
+                mgr = create_account_manager()
+                success, msg, user_id = mgr.login_account(login_username, login_password)
+                if success and user_id:
+                    st.session_state.logged_in_username = login_username.strip()
+                    st.session_state.logged_in_user_id = user_id
+                    app_state.set_user_id(user_id)
+                    st.session_state.sidebar_user_data = None
+                    st.session_state.show_login_dialog = False
+                    for key in ('login_username_input', 'login_password_input'):
+                        st.session_state.pop(key, None)
+                    st.success(msg)
+                    st.rerun()
+                else:
+                    st.error(msg)
+
+
 def render_sidebar(active_page: str = "conversion"):
     """渲染共享侧边栏内容（用户信息 / 账号 / 功能导航 / 宣传图 / 反馈 / 版本）"""
     from config import APP_VERSION
@@ -85,6 +151,12 @@ def render_sidebar(active_page: str = "conversion"):
         }
         [data-testid="stSidebar"] [data-testid="stPageLink"] {
             margin: 0.18rem 0;
+        }
+        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] {
+            gap: 0.8rem !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stRadio"] [role="radio"] {
+            padding: 0.55rem 0.65rem !important;
         }
         [data-testid="stSidebar"] [data-testid="stPageLink"] > a {
             display: flex;
@@ -291,6 +363,8 @@ def render_sidebar(active_page: str = "conversion"):
                     st.session_state.show_login_dialog = True
                     st.session_state.show_bind_dialog = False
 
+        _render_login_dialog(_device_fp)
+
         # 用户数据加载（复用 app.py 入口统一初始化的会话缓存）
         if not st.session_state.get('user_init_failed', False):
             from data_manager import load_user_data
@@ -364,7 +438,7 @@ def render_sidebar(active_page: str = "conversion"):
             unsafe_allow_html=True,
         )
 
-        _render_feature_menu()
+        _render_feature_menu(active_page)
 
         # ==================== 绑定账号对话框 ====================
         if st.session_state.get('show_bind_dialog', False):
@@ -417,54 +491,6 @@ def render_sidebar(active_page: str = "conversion"):
                             for k in ('bind_username_input', 'bind_password_input', 'bind_password2_input'):
                                 st.session_state.pop(k, None)
                             st.success(msg + " 已自动登录。")
-                            st.rerun()
-                        else:
-                            st.error(msg)
-
-        # ==================== 账号登录对话框 ====================
-        if st.session_state.get('show_login_dialog', False):
-            with st.expander("🔑 账号登录", expanded=True):
-                st.markdown("使用已绑定的用户名和密码登录。")
-                with st.form("login_account_form"):
-                    login_username = st.text_input(
-                        "用户名",
-                        placeholder="输入已绑定的用户名",
-                        key="login_username_input"
-                    )
-                    login_password = st.text_input(
-                        "密码",
-                        type="password",
-                        placeholder="输入登录密码",
-                        key="login_password_input"
-                    )
-
-                    col_l1, col_l2 = st.columns(2)
-                    with col_l1:
-                        submitted_login = st.form_submit_button("✅ 登录", use_container_width=True)
-                    with col_l2:
-                        cancelled_login = st.form_submit_button("取消", use_container_width=True)
-
-                if cancelled_login:
-                    st.session_state.show_login_dialog = False
-                    for k in ('login_username_input', 'login_password_input'):
-                        st.session_state.pop(k, None)
-                    st.rerun()
-
-                if submitted_login:
-                    if not login_username or not login_password:
-                        st.error("用户名和密码不能为空")
-                    else:
-                        mgr = create_account_manager()
-                        success, msg, user_id = mgr.login_account(login_username, login_password)
-                        if success and user_id:
-                            st.session_state.logged_in_username = login_username.strip()
-                            st.session_state.logged_in_user_id = user_id
-                            app_state.set_user_id(user_id)
-                            st.session_state.sidebar_user_data = None
-                            st.session_state.show_login_dialog = False
-                            for k in ('login_username_input', 'login_password_input'):
-                                st.session_state.pop(k, None)
-                            st.success(msg)
                             st.rerun()
                         else:
                             st.error(msg)
