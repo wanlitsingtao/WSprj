@@ -15,7 +15,7 @@ import json
 import re
 from typing import Dict, List, Optional, Tuple
 
-from doc_converter import build_word_pattern
+from doc_converter import build_single_imperative_pattern, build_word_pattern
 from tone_defaults import get_default_tone_rules
 
 
@@ -245,7 +245,10 @@ class ToneRulesManager:
             bidder_re = re.compile('|'.join(patterns))
 
         multi_re = _word_re(multi_map.keys())
-        single_re = _word_re(single_map.keys())
+        single_re = (
+            re.compile('|'.join(build_single_imperative_pattern(w) for w in single_map))
+            if single_map else None
+        )
 
         def is_multi_exc(full, start, end, word):
             s = max(0, start - 20)

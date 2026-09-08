@@ -3183,6 +3183,26 @@ def _insert_response_in_memory(self, doc, answer_text=None, answer_style=None, m
 | 指标 | 旧方式（三阶段） | 新方式（一次性流水线） | 改进 |
 |------|-----------------|---------------------|------|
 | **耗时** | 0.22秒 | 0.09秒 | **57.3%提升** |
+
+---
+
+## 2026-09-07 Web版重复转换段落统计与额度校验修复
+
+### 问题
+
+Web版完成一次文档转换后再次点击“开始转换”仍会执行转换。后续转换优先复用会话中的 `file_paragraph_counts`，没有从当前上传文件重新统计；首次统计还使用 `len(doc.paragraphs)`，与页面说明的“排除标题段落”规则不一致。转换前也没有始终重新读取并校验最新额度，可能在余额不足时继续转换。
+
+### 修复
+
+1. 统一使用 `components/upload.py::count_paragraphs` 统计可计费正文段落，并排除标题样式和大纲级别标题。
+2. 每次点击转换时从当前上传对象重建临时源文件并重新统计，不复用旧段落数缓存。
+3. 转换开始前重新加载用户数据并校验额度，不足时停止转换并提示用户。
+4. 新增 `test_conversion_paragraphs.py`，覆盖标题排除和统一统计函数的两种输入方式。
+
+### 验证
+
+- `python -m py_compile components/upload.py pages/conversion.py`
+- `python -m unittest -v test_conversion_paragraphs.py`
 | **时间节省** | - | 0.12秒 | - |
 | **Document加载次数** | 3次 | 1次 | **减少67%** |
 | **文件保存次数** | 3次 | 1次 | **减少67%** |

@@ -67,6 +67,11 @@ def build_word_pattern(word):
     return r'(?<![a-zA-Z0-9])' + re.escape(word) + r'(?![a-zA-Z0-9])'
 
 
+def build_single_imperative_pattern(word):
+    """构建单字祈使词匹配正则，允许紧跟英文字母。"""
+    return re.escape(word) + r'(?![a-zA-Z0-9])'
+
+
 def clean_list_numbering(text):
     """清理开头数字编号：1、 1） (1) 等"""
     pattern = r'^\s*(?:\d+[、\)）]|[（(]\d+[）\)])\s*'
@@ -119,7 +124,7 @@ class DocumentConverter:
         single_keys = list(single_map.keys())
         self.single_replace_map = single_map
         self.single_imperative_regex = (
-            re.compile('|'.join(build_word_pattern(w) for w in single_keys))
+            re.compile('|'.join(build_single_imperative_pattern(w) for w in single_keys))
             if single_keys else None
         )
 

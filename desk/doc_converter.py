@@ -109,6 +109,11 @@ def build_word_pattern(word):
     return r'(?<![a-zA-Z0-9])' + re.escape(word) + r'(?![a-zA-Z0-9])'
 
 
+def build_single_imperative_pattern(word):
+    """构建单字祈使词匹配正则，允许紧跟英文字母。"""
+    return re.escape(word) + r'(?![a-zA-Z0-9])'
+
+
 def clean_list_numbering(text):
     """清理开头数字编号：1、 1） (1) 等"""
     pattern = r'^\s*(?:\d+[、\)）]|[（(]\d+[）\)])\s*'
@@ -119,7 +124,7 @@ def clean_list_numbering(text):
 MULTI_IMPERATIVE_PATTERNS = [build_word_pattern(w) for w in MULTI_IMPERATIVE_TO_STATEMENT.keys()]
 MULTI_IMPERATIVE_REGEX = re.compile('|'.join(MULTI_IMPERATIVE_PATTERNS))
 
-SINGLE_IMPERATIVE_PATTERNS = [build_word_pattern(w) for w in SINGLE_REPLACE.keys()]
+SINGLE_IMPERATIVE_PATTERNS = [build_single_imperative_pattern(w) for w in SINGLE_REPLACE.keys()]
 SINGLE_IMPERATIVE_REGEX = re.compile('|'.join(SINGLE_IMPERATIVE_PATTERNS))
 
 REPLACE_REGEX = None
