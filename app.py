@@ -483,5 +483,32 @@ _page_renderers = {
     "tone_config": render_tone_config_page,
     "comments": render_comments_page,
 }
+
+# 用 st.navigation(position="hidden") 在服务端注册页面并隐藏默认导航，
+# 避免 pages/ 目录触发 Streamlit 自动导航（不依赖启动目录/config.toml）。
+# 页面切换仍由自定义侧边栏 st.radio（sidebar_active_page）驱动。
+st.navigation(
+    [
+        st.Page(render_conversion_page, title="文档转换", url_path="conversion", default=True),
+        st.Page(render_toolbox_page, title="工具箱", url_path="toolbox"),
+        st.Page(render_tone_config_page, title="祈使语气配置", url_path="tone_config"),
+        st.Page(render_comments_page, title="用户评价", url_path="comments"),
+    ],
+    position="hidden",
+)
+
+# 兜底隐藏：项目仍保留 pages/ 目录（供导入），此处再隐藏默认导航，双保险。
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebarNav"],
+    [data-testid="stSidebarNavItems"],
+    [data-testid="stSidebarNavSeparator"] {
+        display: none !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 _active_page = st.session_state.get("sidebar_active_page", "conversion")
 _page_renderers.get(_active_page, render_conversion_page)()

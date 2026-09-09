@@ -3242,6 +3242,25 @@ Web版使用 `st.navigation` 注册多个页面，并在侧边栏使用 `st.page
 
 - `python -m py_compile app.py components/sidebar.py pages/conversion.py pages/toolbox.py pages/tone_config.py pages/comments.py`
 - `python -m unittest -v test_sidebar_navigation.py`
+
+---
+
+## 2026-09-08 发布版侧边栏出现默认页面导航修复
+
+### 问题
+
+单入口路由替代 `st.navigation` 后，项目仍保留 `pages/` 目录。Streamlit 会自动生成默认多页面导航；由于原先依赖 `st.navigation(position="hidden")` 隐藏该导航，改为单入口后未同步补充隐藏样式，导致侧边栏同时出现默认导航和自定义功能菜单。
+
+### 修复
+
+1. 在 `app.py` 的单入口路由处隐藏 `stSidebarNav`、`stSidebarNavItems` 和 `stSidebarNavSeparator`，保留自定义 `sidebar_active_page` 菜单。
+2. 更彻底：新增 `.streamlit/config.toml`，配置 `client.showSidebarNavigation = false`，在 Streamlit 生成默认导航前关闭自动侧边栏导航，避免启动时短暂闪现默认菜单。
+3. 同步脚本新增 `.streamlit/config.toml` 同步步骤，仅同步该配置文件，不触碰含敏感信息的 `secrets.toml`。
+
+### 验证
+
+- `python -m py_compile app.py`
+- `python -m unittest -v test_sidebar_navigation.py`
 | **时间节省** | - | 0.12秒 | - |
 | **Document加载次数** | 3次 | 1次 | **减少67%** |
 | **文件保存次数** | 3次 | 1次 | **减少67%** |
