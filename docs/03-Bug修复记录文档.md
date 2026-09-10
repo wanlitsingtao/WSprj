@@ -3201,7 +3201,7 @@ Web版完成一次文档转换后再次点击“开始转换”仍会执行转�
 
 ### 验证
 
-- `python -m py_compile components/upload.py pages/conversion.py`
+- `python -m py_compile components/upload.py views/conversion.py`
 - `python -m unittest -v test_conversion_paragraphs.py`
 
 ---
@@ -3220,7 +3220,7 @@ Web版上传源文档、模板文档及部分工具生成的临时文档直接�
 
 ### 验证
 
-- `python -m py_compile config.py file_manager.py pages/conversion.py components/upload.py components/config_panel.py components/style_cleanup.py components/title_preprocess.py components/sidebar.py`
+- `python -m py_compile config.py file_manager.py views/conversion.py components/upload.py components/config_panel.py components/style_cleanup.py components/title_preprocess.py components/sidebar.py`
 - `python -m unittest -v test_temp_storage.py`
 
 ---
@@ -3240,7 +3240,7 @@ Web版使用 `st.navigation` 注册多个页面，并在侧边栏使用 `st.page
 
 ### 验证
 
-- `python -m py_compile app.py components/sidebar.py pages/conversion.py pages/toolbox.py pages/tone_config.py pages/comments.py`
+- `python -m py_compile app.py components/sidebar.py views/conversion.py views/toolbox.py views/tone_config.py views/comments.py`
 - `python -m unittest -v test_sidebar_navigation.py`
 
 ---
@@ -3256,6 +3256,33 @@ Web版使用 `st.navigation` 注册多个页面，并在侧边栏使用 `st.page
 1. 在 `app.py` 的单入口路由处隐藏 `stSidebarNav`、`stSidebarNavItems` 和 `stSidebarNavSeparator`，保留自定义 `sidebar_active_page` 菜单。
 2. 更彻底：新增 `.streamlit/config.toml`，配置 `client.showSidebarNavigation = false`，在 Streamlit 生成默认导航前关闭自动侧边栏导航，避免启动时短暂闪现默认菜单。
 3. 同步脚本新增 `.streamlit/config.toml` 同步步骤，仅同步该配置文件，不触碰含敏感信息的 `secrets.toml`。
+
+---
+
+## 2026-09-10 加载最早期默认多页导航闪现修复（彻底方案：pages/ → views/）
+
+### 问题
+
+`.streamlit/config.toml` 的 `client.showSidebarNavigation = false` 仅能在"Python 启动后"隐藏默认导航，但 Streamlit 前端在 Python 接管前就已渲染 `pages/` 目录的默认多页菜单（app / conversion / toolbox / tone_config / comments），表现为页面加载第一帧出现该菜单一闪而过，之后才被 CSS 兜底隐藏。CSS 兜底（`display:none [data-testid="stSidebarNav"]`）同样在 Python 启动后才注入，无法根治首帧 FOUC。
+
+### 根本原因
+
+Streamlit ≥1.36 把项目根目录下的 `pages/` 文件夹视为保留的多页面入口，前端在脚本执行前就生成默认侧边栏导航。任何 Python 侧的隐藏（`config.toml` / `st.navigation(position="hidden")` / CSS 兜底）都来不及影响首帧。
+
+### 修复（dev 改后，pub 由用户自行同步）
+
+1. **目录重命名**：`pages/` → `views/`。Streamlit 只识别名为 `pages/` 的目录作为自动多页面入口，改名后前端根本不会生成默认导航，从源头消除首帧闪现。
+2. `app.py` 同步更新：4 处 `from pages.X import` → `from views.X import`；文件头注释、第 508 行注释、第 520 行注释一并刷新。
+3. `components/tone_rules.py` 第 11 行注释里的 `pages/tone_config.py` → `views/tone_config.py`。
+4. `views/__init__.py` 内容更新，记录改名原因。
+5. 文档同步：`docs/02-系统设计文档.md`（目录树、转换调用链）、`docs/03-Bug修复记录文档.md`（历史命令路径）全部 `pages/` → `views/`。
+6. `app.py` 第 521-532 行的 `[data-testid="stSidebarNav"] { display:none }` CSS 兜底保留作双保险。
+
+### 验证
+
+- `ast` 语法检查通过 7 个文件（`app.py`、`views/__init__.py`、4 个 `views/X.py`、`components/tone_rules.py`）。
+- Python 导入冒烟测试：`import views` 成功；`from views.conversion/toolbox/tone_config/comments import render_xxx_page` 4 个渲染函数全部成功。
+- `pages/` 目录已不存在，`views/` 目录含 4 个页面文件 + `__init__.py`。
 
 ### 验证
 
